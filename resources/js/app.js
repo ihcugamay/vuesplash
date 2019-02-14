@@ -10,7 +10,7 @@ const createApp = async () => {
   new Vue({
     el: "#app",
     router,
-    store, // 追加
+    store,
     components: { App },
     template: "<App />"
   });
