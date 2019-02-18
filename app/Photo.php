@@ -23,6 +23,7 @@ class Photo extends Model
         'id','owner','url',
     ];
 
+    protected $perPage = 9; //1pageあたりの写真数
 
 
     public function __construct(array $attributes = [])
