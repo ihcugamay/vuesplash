@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePhoto;
@@ -14,50 +13,39 @@ class PhotoController extends Controller
     public function __construct()
     {
         // 認証が必要
-        $this->middleware('auth')->except(['index','download']);
+        $this->middleware('auth')->except(['index', 'download']);
     }
-
-    public function create(StorePhoto $request)
-    {
-        // 投稿写真の拡張子を取得する
-        $extension = $request->photo->extension();
-
-        $photo = new Photo();
-
-        // インスタンス生成時に割り振られたランダムなid値と本来の拡張子を組み合わせてファイル名とする
-        $photo->filename = $photo->id . '.' . $extension;
-
-        // s3にファイルを保存する
-        // 第3引数の'public'はファイルを公開状態で保存するため
-        Storage::cloud()->putFileAs('', $request->photo, $photo->filename, 'public');
-
-        //データベースエラー時にファイル削除を行うためトランザクションを利用する
-        DB::beginTransaction();
-
-        try {
-            Auth::user()->photos()->save($photo);
-            DB::commit();
-        } catch (\Exception $exception) {
-            DB::rollback();
-            // DBとの不整合を避けるためアップロードしたファイルを削除
-            Storage::cloud()->delete($photo->filename);
-            throw $exception;
-        }
-
-        // リソースの新規作成なのでレスポンスコードは201(CREATED)を返却する
-        return response($photo, 201);
-    }
-
     /**
      * 写真一覧
      */
     public function index()
     {
-        $photos = Photo::with(['owner'])->orderBy(Photo::CREATED_AT, 'desc')->paginate();
-
+        $photos = Photo::with(['owner'])
+            ->orderBy(Photo::CREATED_AT, 'desc')->paginate();
         return $photos;
     }
-
+    /**
+     * 写真投稿
+     * @param StorePhoto $request
+     * @return \Illuminate\Http\Response
+     */
+    public function create(StorePhoto $request)
+    {
+        $extension = $request->photo->extension();
+        $photo = new Photo();
+        $photo->filename = $photo->id . '.' . $extension;
+        Storage::cloud()->putFileAs('', $request->photo, $photo->filename, 'public');
+        DB::beginTransaction();
+        try {
+            Auth::user()->photos()->save($photo);
+            DB::commit();
+        } catch (\Exception $exception) {
+            DB::rollBack();
+            Storage::cloud()->delete($photo->filename);
+            throw $exception;
+        }
+        return response($photo, 201);
+    }
     /**
      * 写真ダウンロード
      * @param Photo $photo
@@ -69,12 +57,10 @@ class PhotoController extends Controller
         if (! Storage::cloud()->exists($photo->filename)) {
             abort(404);
         }
-
         $headers = [
-        'Content-Type' => 'application/octet-stream',
-        'Content-Disposition' => 'attachment; filename="' . $photo->filename . '"',
-    ];
-
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="' . $photo->filename . '"',
+        ];
         return response(Storage::cloud()->get($photo->filename), 200, $headers);
     }
 }
