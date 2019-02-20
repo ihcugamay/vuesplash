@@ -22,26 +22,28 @@ class PhotoDetailApiTest extends TestCase
         });
         $photo = Photo::first();
 
-        $response =$this->json('GET', route('photo.show', [
+        $response = $this->json('GET', route('photo.show', [
             'id' => $photo->id,
         ]));
 
         $response->assertStatus(200)
-        ->assertJsonFragment([
-            'id' => $photo->id,
-            'url' => $photo->url,
-            'owner' => ['name'=>$photo->owner->name,],
-            'comments' => $photo->comments
-            ->sortByDesc('id')
-            ->map(function ($comment) {
-                return [
-                    'author' => [
-                        'name' => $comment->author->name,
-                    ],
-                    'content' => $comment->content,
-                ];
-            })
-            ->all(),
-        ]);
+            ->assertJsonFragment([
+                'id' => $photo->id,
+                'url' => $photo->url,
+                'owner' => [
+                    'name' => $photo->owner->name,
+                ],
+                'comments' => $photo->comments
+                    ->sortByDesc('id')
+                    ->map(function ($comment) {
+                        return [
+                            'author' => [
+                                'name' => $comment->author->name,
+                            ],
+                            'content' => $comment->content,
+                        ];
+                    })
+                    ->all(),
+            ]);
     }
 }
