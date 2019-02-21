@@ -27,6 +27,9 @@ class PhotoListApiTest extends TestCase
         $photos = Photo::with(['owner'])->orderBy('created_at', 'desc')->get();
 
         // data項目の期待値
+        // ""変数($変数名)が展開される ''変数が展開されない 基本""を使えばOK
+        // 配列の最後のカンマは記述しても動作するが、他の言語では動作しない場合が多い
+        // よって記載しないで統一する方が良い
         $expected_data = $photos->map(function ($photo) {
             return [
                 'id'=> $photo->id,
@@ -34,6 +37,8 @@ class PhotoListApiTest extends TestCase
                 'owner'=>[
                     'name'=>$photo->owner->name,
                 ],
+                'liked_by_user'=>false,
+                'likes_count'=>0,
             ];
         })
         ->all();
